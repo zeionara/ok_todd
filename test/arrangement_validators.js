@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 
-const arrangement_validators = require('../arrangement_validators');
-const date_converters = require('../date_converters');
+const arrangement_validators = require('../app/arrangement_validators');
+const date_converters = require('../app/date_converters');
 
 //arrangement_validators.if_time_free(date_converters.fix_date(new Date('April 15, 2019 12:24:00'), 'sunday'), 'shaving').then(function(result){
 //	console.log(result);

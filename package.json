@@ -4,7 +4,8 @@
   "description": "Educational project for evaluation of the dialogflow functionality",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --timeout 10000"
+    "test": "mocha --timeout 10000",
+    "start": "node index.js"
   },
   "dependencies": {
     "actions-on-google": "^2.1.3",
@@ -19,7 +20,7 @@
     "dialogflow"
   ],
   "author": "zeionara",
-  "license": "ISC",
+  "license": "BSD 3-Clause",
   "bugs": {
     "url": "https://github.com/zeionara/ok_todd/issues"
   },

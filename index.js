@@ -1,7 +1,7 @@
 'use strict';
 
 const { WebhookClient } = require('dialogflow-fulfillment');
-const handlers = require('./handlers.js');
+const handlers = require('./app/handlers.js');
 
 exports.main = (request, response) => {
 	const agent = new WebhookClient({ request, response });

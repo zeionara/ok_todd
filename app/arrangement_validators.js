@@ -126,26 +126,15 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 			start_work = schedule.start_work;
 			end_work = schedule.end_work;
 			weekend = schedule.weekend;
-			//var { start_work, end_work, weekend } = schedule;
 			return db_api.read_service_type(desired_service_type);
 		}).then(function(service_type_object) {
 	        masters = service_type_object.masters;
 	        duration = service_type_object.duration;
-	        //var { masters, duration } = service_type_object;
 	        return db_api.read_arrangement_times();
 	    }).then(function(result){
-	    	//console.log(start_work + '');
-			//console.log(end_work + '');
 	        let desired_time_hms = date_converters.get_hms_from_date(desired_time);
-	        //console.log(`weekend = ${weekend}`);
-			//console.log(`weekday = ${desired_time.getDay()}`);
-	        //console.log(new Date());
-	        //console.log(desired_time);
 				
 			if ((date_converters.get_hms_from_date(start_work) > desired_time_hms) || (date_converters.get_hms_from_date(end_work) < desired_time_hms)){
-				//agent.add(`Umm, I am sorry, but we are working only from ${convert_to_ampm_format(start_work)} till ${convert_to_ampm_format(end_work)}. ` + 
-				//	get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend));
-	            //negative_experience.increase(agent, `schedule does not include ${convert_to_ampm_format(desired_time)}`);
 	           	return resolve({
 	           		'success': false, 
 	           		'message': `Umm, I am sorry, but we are working only from ${date_converters.convert_to_ampm_format(start_work)} till ${date_converters.convert_to_ampm_format(end_work)}. ` + 
@@ -153,10 +142,6 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 	           		'cause': `schedule does not include ${date_converters.convert_to_ampm_format(desired_time)}`
 	           	});
 			} else if (date_converters.get_hms_from_date(date_converters.add_hours(end_work, -duration)) < desired_time_hms){
-				//db_api.write_negative_experience(`schedule does not include ${convert_to_ampm_format(add_hours(desired_time, duration))}`);
-	            //agent.add(`I regret your service might take up to ${duration} hours but we are working only from ${convert_to_ampm_format(start_work)} till ${convert_to_ampm_format(end_work)}. ` + 
-				//	get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend));
-	            //negative_experience.increase(agent, `schedule does not include ${convert_to_ampm_format(add_hours(desired_time, duration))}`);
 				return resolve({
 					'success': false, 
 					'message': `I regret your service might take up to ${duration} hours but we are working only from ${date_converters.convert_to_ampm_format(start_work)} till ${date_converters.convert_to_ampm_format(end_work)}. ` + 
@@ -164,9 +149,6 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 					'cause': `schedule does not include ${date_converters.convert_to_ampm_format(date_converters.add_hours(desired_time, duration))}`
 				});
 			} else if (weekend.includes(desired_time.getDay())){
-				//agent.add(`Oh, I am sorry, but we don't work ${get_weekdays_list(weekend.map(function(item){return get_weekday_from_index(item)}), ' and ')}. ` + 
-				//	get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend));
-	            //negative_experience.increase(agent, `weekend includes ${get_weekday_from_index(desired_time.getDay())}`);
 				return resolve({
 					'success': false, 
 					'message': `Oh, I am sorry, but we don't work ${date_converters.get_weekdays_list(weekend.map(function(item){return date_converters.get_weekday_from_index(item)}), ' and ')}. ` + 
@@ -183,13 +165,8 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 			});
 
 			if (filtered.length < masters){
-				//return resolve({'success': true});
-				//agent.add(randomly_select(positive_arrangement_time));
-	            //agent.setContext('getting_lastname');
 				return resolve({'success': true});
 			} else {
-				//agent.add(randomly_select(negative_arrangement_time) + ' ' + get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend));
-	            //increase_negative_experience(agent, `not enough masters for ${desired_service_type}`);
 				return resolve({
 					'success': false, 
 					'message': 'Unfortunately there is not a free place. ' + get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
