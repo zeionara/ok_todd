@@ -59,3 +59,10 @@ typings/
 
 # next.js build output
 .next
+
+# ignore files
+.git
+.gitignore
+
+# cloud functions envs
+config/env.yaml

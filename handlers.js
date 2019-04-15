@@ -1,0 +1,81 @@
+'use strict';
+
+const db_api = require('./db_api.js');
+const contexts = require('./contexts.js');
+const date_converters = require('./date_converters.js');
+const arrangement_validators = require('./arrangement_validators.js');
+const repliers = require('./repliers.js');
+const negative_experience = require('./negative_experience.js');
+
+exports.contacts_request = (agent) => {
+	return new Promise((resolve, reject) => {
+		db_api.read_contacts().then(function(contacts){
+			return resolve(repliers.give_contacts(agent, contacts));
+		}).catch(function(error){
+	    	console.log('Error during requesting contacts');
+	    	console.log(error);
+	    	resolve(error);
+	    });
+	});
+}
+  
+exports.write_order = (agent) => {
+	return new Promise((resolve, reject) => {
+		const additional_info = agent.parameters.additional_info;
+	    console.log(`[additional info handler] Additional info is ${additional_info}`);
+
+	    const lastname = contexts.get_additional_info_context(agent).parameters['last-name'];
+	    console.log(`[additional info handler] Last name is ${lastname}`);
+
+	    const service_type = contexts.get_arrangement_time_context(agent).parameters.service_type;
+	    console.log(`[additional info handler] Service type is ${service_type}`);
+
+	    const arrangement_time = contexts.get_arrangement_time_context(agent).parameters.time;
+	    const day_informal_description = agent.getContext('getting_arangement_time').parameters.day_informal_description;
+	    console.log(`[additional info handler] Arrangement time is ${arrangement_time}`);
+	    
+	    db_api.write_arrangement(service_type, date_converters.fix_date(new Date(arrangement_time), day_informal_description), lastname, agent, additional_info).then(function(result){
+	    	contexts.clear_order_contexts(agent);
+	    	if (result.success){
+	    		repliers.bye(agent);
+	    	} else {
+	    		repliers.error_bye(agent);
+	    	}
+	    	return resolve(result);
+	    }).catch(function(error){
+	    	console.log('Error during writing order');
+	    	console.log(error);
+	    	resolve(error);
+	    });
+	});	
+}
+
+exports.validate_arrangement_time = (agent) => {
+	return new Promise((resolve, reject) => {
+	    const arrangement_time = agent.parameters.time;
+	    console.log(`[arrangement time handler] Arrangement time is ${arrangement_time}`);
+
+	    const day_informal_description = agent.parameters.day_informal_description;
+	    console.log(`[arrangement time handler] Day informal description is ${day_informal_description}`);
+	    
+	    //console.log('Agent in validate_arrangement_time');
+		//console.log(agent);
+	    const service_type = contexts.get_arrangement_time_context(agent).parameters.service_type;
+	    console.log(`[arrangement time handler] Service type is ${service_type}`);
+
+		arrangement_validators.if_time_free(date_converters.fix_date(new Date(arrangement_time), day_informal_description), service_type, agent).then(function(result){
+			if (result.success){
+				repliers.time_is_free(agent, result.message);
+				contexts.start_getting_last_name(agent);
+			} else {
+				repliers.time_is_busy(agent, result.message);
+				negative_experience.increase(agent, result.cause);
+			}
+			return resolve(result);
+		}).catch(function(error){
+	    	console.log('Error during validating arrangement');
+	    	console.log(error);
+	    	resolve(error);
+	    });
+	});
+}
