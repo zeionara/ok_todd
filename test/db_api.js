@@ -53,16 +53,12 @@ describe('write_arrangement', () => {
 					}
 				})
 			};
-			db_api.write_arrangement('shaving', date_converters.fix_date(new Date('April 15, 2019 12:24:00'), 'tuesday'), 
-									'lastname', fake_agent, 'additional_info').then(function(result){
-				//console.log(result);
+			db_api.write_arrangement('shaving', date_converters.fix_date(new Date('April 15, 2019 12:24:00'), 'tuesday'), 'lastname', fake_agent, 'additional_info').then(function(result){
 				result.success.should.be.true;
-				db_api.write_arrangement('shaving', date_converters.fix_date(new Date('April 15, 2019 12:24:00'), 'tuesday'), 
-										'lastname', fake_agent, 'additional_info').then(function(result){
-					//console.log(result);
-					result.success.should.be.false;
-					done();
-				});
+				return db_api.write_arrangement('shaving', date_converters.fix_date(new Date('April 15, 2019 12:24:00'), 'tuesday'), 'lastname', fake_agent, 'additional_info');
+			}).then(function(result){
+				result.success.should.be.false;
+				done();
 			});
 		});
 	});
