@@ -1,0 +1,102 @@
+#
+# settings
+#
+firebase_admin:
+    TODD_API_KEY: dkowkOWKDOKokdodkwoOWDKOKD
+    TODD_AUTH_DOMAIN: example.firebaseapp.com
+    TODD_DATABASE_URL: https://example.firebaseio.com
+    TODD_PROJECT_ID: example
+    TODD_STORAGE_BUCKET: example.appspot.com
+    TODD_MESSAGING_SENDER_ID: example.appspot.com
+collections:
+    negative_experiences: ${envId}_negative_experiences
+    arrangements: ${envId}_arrangements
+    service_types: ${envId}_service_types
+    base_info: ${envId}_base_info
+contexts:
+    getting_arrangement_time: getting_arangement_time
+    getting_additional_info: getting_additinal_info
+    negative_arrangement_experienced: negative_arrangement_experienced
+    getting_last_name: getting_lastname
+    getting_client_desire: getting_client_desire
+intents:
+    contacts: 'Give contact with real person'
+    arrangement_time: 'Get arrangement time'
+    establish_arrangement_with_additional_info: 'Get additional info'
+    establish_arrangement: 'No additional info'
+lifespan:
+    negative_arrangement_experienced:
+        initial: 7
+day_informal_description:
+    today: today
+    tomorrow: tomorrow
+    sunday: sunday
+    monday: monday
+    tuesday: tuesday
+    wednesday: wednesday
+    thursday: thursday
+    friday: friday
+    saturday: saturday
+number_of_days_planning: 7
+timezone_offset: 0
+#
+# phrases
+#
+suggestion:
+    start: 
+        - '. Possibly, you are free at this time: '
+        - '. Maybe you could come at this time: '
+    day_prefix: 'on '
+    day_time_separator: ' at '
+    option_separator: ', '
+    last_option_separator: ' or '
+out_of_schedule_time:
+    start:
+        - 'Umm, I am sorry, but we are working only from '
+        - 'I think we cannot give you a service at this time because we regularly work from '
+    time_separator: 
+        - ' till '
+        - ' to '
+    cause: 'schedule does not include '
+end_out_of_schedule_time:
+    start:
+        - 'I regret your service might take up to '
+        - 'Hmm, your service might continue for '
+    middle:
+        - ' hours, but we are working just from '
+        - ' hours despite we are working only from '
+    time_separator: 
+        - ' till '
+        - ' to '
+out_of_schedule_day:
+    start:
+        - "Oh, I am sorry, but we don't work "
+        - "I think it is not possible to validate your visit because we don't work "
+    day_prefix: 'on '
+    option_separator: ', '
+    last_option_separator: ' and '
+    cause: 'weekend includes '
+valid_arrangement_time:
+    - There is a free place! Then, tell me please your lastname
+    - You are lucky! We are ready to serve you at this time! How could we call you?
+busy_arrangement_time:
+    start:
+        - 'Unfortunately at that time our masters are busy. But you can select another time! '
+        - 'Well, I regret we cannot serve you at this time. But we will be happy to see you in other moment! Please, tell me, when you could come. '
+    cause: 'not enough masters for '
+arrangement_established:
+    - Well, now we finished. Thank you very much! <3
+    - Ok, everything is perfect. See you soon! <3
+arrangement_failed:
+    - Bad news - our server crashed (((((((
+    - Unfortunately something undesired happened...
+contacts:
+    start:
+        - 'You could contact our managers via '
+        - 'For communication with admins you can use '
+    middle:
+        - ' or call to '
+        - ' or '
+    end:
+        - ' if you prefer verbal communication '
+        - ' in case you like talking '

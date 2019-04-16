@@ -66,3 +66,4 @@ typings/
 
 # cloud functions envs
 config/env.yaml
+config.yml

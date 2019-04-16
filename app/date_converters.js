@@ -1,24 +1,12 @@
-var TODAY_INFORMAL_DESCRIPTION = 'today';
-var TOMORROW_INFORMAL_DESCRIPTION = 'tomorrow';
+'use strict';
 
-exports.TODAY_INFORMAL_DESCRIPTION = TODAY_INFORMAL_DESCRIPTION;
-exports.TOMORROW_INFORMAL_DESCRIPTION = TOMORROW_INFORMAL_DESCRIPTION;
-
-var SUNDAY_INFORMAL_DESCRIPTION = 'sunday';
-var MONDAY_INFORMAL_DESCRIPTION = 'monday';
-var TUESDAY_INFORMAL_DESCRIPTION = 'tuesday';
-var WEDNESDAY__INFORMAL_DESCRIPTION = 'wednesday';
-var THURSDAY_INFORMAL_DESCRIPTION = 'thursday';
-var FRIDAY_INFORMAL_DESCRIPTION = 'friday';
-var SATURDAY_INFORMAL_DESCRIPTION = 'saturday';
-
-var TIMEZONE_OFFSET = 0;
+const config = require('config-yml');
 
 exports.fix_date = (date, informal_description) => {
 	var fixed_date = new Date();
-	if (informal_description == TOMORROW_INFORMAL_DESCRIPTION){
+	if (informal_description == config.day_informal_description.tomorrow){
 		fixed_date = this.add_days(fixed_date, 1);
-	} else if (informal_description != TODAY_INFORMAL_DESCRIPTION){
+	} else if (informal_description != config.day_informal_description.today){
 		fixed_date = this.add_days(fixed_date, get_distance(fixed_date.getDay(), get_weekday_index(informal_description)));
 	}
 	fixed_date.setHours(date.getHours(), date.getMinutes(), date.getSeconds(), 0);
@@ -78,7 +66,7 @@ exports.add_time_offset = (date, offset) => {
 }
 
 exports.convert_to_ampm_format = (date) => {
-  date = this.add_time_offset(date, TIMEZONE_OFFSET);
+  date = this.add_time_offset(date, config.timezone_offset);
   var hours = date.getHours();
   var ampm = hours >= 12 ? 'pm' : 'am';
   hours = hours % 12;
@@ -102,21 +90,22 @@ exports.is_tomorrow = (date) => {
 }
 
 exports.get_weekday_from_index = (weekday_index) => {
-	switch (weekday_index) {
+	//console.log(weekday_index);
+  switch (weekday_index) {
   		case 0:
-    		return SUNDAY_INFORMAL_DESCRIPTION;
+    		return config.day_informal_description.sunday;
   		case 1:
-  			return MONDAY_INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.monday;
   		case 2:
-  			return TUESDAY_INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.tuesday;
   		case 3:
-  			return WEDNESDAY__INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.wednesday;
   		case 4:
-  			return THURSDAY_INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.thursday;
   		case 5:
-  			return FRIDAY_INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.friday;
   		case 6:
-  			return SATURDAY_INFORMAL_DESCRIPTION;
+  			return config.day_informal_description.saturday;
   		default:
     		throw new RangeError('incorrect day of week');
 	}
@@ -124,22 +113,22 @@ exports.get_weekday_from_index = (weekday_index) => {
 
 exports.shortify_date = (date) => {
 	if (this.is_today(date)){
-		return TODAY_INFORMAL_DESCRIPTION;
+		return config.day_informal_description.today;
 	} else if (this.is_tomorrow(date)){
-		return TOMORROW_INFORMAL_DESCRIPTION;
+		return config.day_informal_description.tomorrow;
 	}
 	return this.get_weekday_from_index(date.getDay());
 }
 
-exports.get_weekdays_list = (weekdays, last_separator) => {
+exports.get_weekdays_list = (weekdays, day_prefix, separator, last_separator) => {
 	var mapped_weekdays = weekdays.map(function(weekday){
-      	var prefix = '';
-		if ((weekday != TODAY_INFORMAL_DESCRIPTION) && (weekday != TOMORROW_INFORMAL_DESCRIPTION)){
-			prefix = 'on ';
+    var prefix = '';
+		if ((weekday != config.day_informal_description.today) && (weekday != config.day_informal_description.tomorrow)){
+			prefix = day_prefix;
 		}
 		return prefix + weekday;
 	});
-	return mapped_weekdays.slice(0, mapped_weekdays.length - 1).join(', ') + last_separator + mapped_weekdays[mapped_weekdays.length - 1];
+	return mapped_weekdays.slice(0, mapped_weekdays.length - 1).join(separator) + last_separator + mapped_weekdays[mapped_weekdays.length - 1];
 }
 
 function get_distance(first_weekday_index, second_weekday_index){
@@ -151,19 +140,19 @@ function get_distance(first_weekday_index, second_weekday_index){
 
 function get_weekday_index(weekday){
 	switch (weekday) {
-  		case SUNDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.sunday:
     		return 0;
-  		case MONDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.monday:
   			return 1;
-  		case TUESDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.tuesday:
   			return 2;
-  		case WEDNESDAY__INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.wednesday:
   			return 3;
-  		case THURSDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.thursday:
   			return 4;
-  		case FRIDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.friday:
   			return 5;
-  		case SATURDAY_INFORMAL_DESCRIPTION:
+  		case config.day_informal_description.saturday:
   			return 6;
   		default:
     		throw new RangeError('incorrect day of week');

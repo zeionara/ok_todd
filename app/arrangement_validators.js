@@ -1,8 +1,10 @@
+'use-strict';
+
+const config = require('config-yml');
 const db_api = require('./db_api.js');
 const date_converters = require('./date_converters.js');
 const negative_experience = require('./negative_experience.js');
-
-var NUMBER_OF_DAYS_PLANNING = 7;
+const random = require('./random');
 
 function get_ticks(start_time, end_time, date, hms_step){
 	// get array of datetime ticks with given step starting from given date in given bounds
@@ -75,15 +77,16 @@ function get_closest(ticks, date, count){
 
 function formulate_suggestion(ticks){
 	// get suggestion for giving to the user
-	var base = 'Possibly, you are free at this time: ';
+	var base = random.randomly_select(config.suggestion.start);
 	var stringified_ticks = ticks.map(function(tick){
 		var prefix = '';
-		if ((tick['weekday'] != date_converters.TODAY_INFORMAL_DESCRIPTION) && (tick['weekday'] != date_converters.TOMORROW_INFORMAL_DESCRIPTION)){
-			prefix = 'on ';
+		if ((tick.weekday != config.day_informal_description.today) && (tick.weekday != config.day_informal_description.tomorrow)){
+			prefix = config.suggestion.day_prefix;
 		}
-		return prefix + tick['weekday'] + ' at ' + tick['time'];
+		return prefix + tick.weekday + config.suggestion.day_time_separator + tick.time;
 	});
-	return base + stringified_ticks.slice(0, stringified_ticks.length - 1).join(', ') + ' or ' + stringified_ticks[stringified_ticks.length - 1];
+	return base + stringified_ticks.slice(0, stringified_ticks.length - 1).join(config.suggestion.option_separator) +
+		   config.suggestion.last_option_separator + stringified_ticks[stringified_ticks.length - 1];
 }
 
 function get_suggestion(arrangements, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend){
@@ -97,7 +100,7 @@ function get_suggestion(arrangements, duration, masters, desired_time, desired_s
 	ticks.sort();
 
 	// get available slots in the schedule
-	var all_ticks = get_ticks_list(start_work, end_work, new Date(), NUMBER_OF_DAYS_PLANNING, [1,0,0], weekend)
+	var all_ticks = get_ticks_list(start_work, end_work, new Date(), config.number_of_days_planning, [1,0,0], weekend)
 					.map(function(item){return {'time': item, 'masters': masters}});
 
 	// validate ticks and thow out busy slots
@@ -137,23 +140,35 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 			if ((date_converters.get_hms_from_date(start_work) > desired_time_hms) || (date_converters.get_hms_from_date(end_work) < desired_time_hms)){
 	           	return resolve({
 	           		'success': false, 
-	           		'message': `Umm, I am sorry, but we are working only from ${date_converters.convert_to_ampm_format(start_work)} till ${date_converters.convert_to_ampm_format(end_work)}. ` + 
-					get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
-	           		'cause': `schedule does not include ${date_converters.convert_to_ampm_format(desired_time)}`
+	           		'message': random.randomly_select(config.out_of_schedule_time.start) + 
+	           				   date_converters.convert_to_ampm_format(start_work) + 
+	           				   random.randomly_select(config.out_of_schedule_time.time_separator) +  
+	           				   date_converters.convert_to_ampm_format(end_work) + 
+					           get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
+	           		'cause': config.out_of_schedule_time.cause + date_converters.convert_to_ampm_format(desired_time)
 	           	});
 			} else if (date_converters.get_hms_from_date(date_converters.add_hours(end_work, -duration)) < desired_time_hms){
 				return resolve({
 					'success': false, 
-					'message': `I regret your service might take up to ${duration} hours but we are working only from ${date_converters.convert_to_ampm_format(start_work)} till ${date_converters.convert_to_ampm_format(end_work)}. ` + 
-					get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
-					'cause': `schedule does not include ${date_converters.convert_to_ampm_format(date_converters.add_hours(desired_time, duration))}`
+					'message': 	random.randomly_select(config.end_out_of_schedule_time.start) + 
+								duration + 
+								random.randomly_select(config.end_out_of_schedule_time.middle) +
+								date_converters.convert_to_ampm_format(start_work) + 
+								config.end_out_of_schedule_time.time_separator +
+								date_converters.convert_to_ampm_format(end_work) + 
+								get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
+					'cause': config.out_of_schedule_time.cause + date_converters.convert_to_ampm_format(date_converters.add_hours(desired_time, duration))
 				});
 			} else if (weekend.includes(desired_time.getDay())){
 				return resolve({
 					'success': false, 
-					'message': `Oh, I am sorry, but we don't work ${date_converters.get_weekdays_list(weekend.map(function(item){return date_converters.get_weekday_from_index(item)}), ' and ')}. ` + 
-					get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
-					'cause': `weekend includes ${date_converters.get_weekday_from_index(desired_time.getDay())}`
+					'message': random.randomly_select(config.out_of_schedule_day.start) + 
+							   date_converters.get_weekdays_list(weekend.map(function(item){return date_converters.get_weekday_from_index(item)}), 
+							   									 config.out_of_schedule_day.day_prefix,
+							   									 config.out_of_schedule_day.option_separator, 
+							   									 config.out_of_schedule_day.last_option_separator) + 
+							   get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
+					'cause': config.out_of_schedule_day.cause + date_converters.get_weekday_from_index(desired_time.getDay())
 				});
 	        }
 
@@ -165,12 +180,13 @@ exports.if_time_free = (desired_time, desired_service_type) => {
 			});
 
 			if (filtered.length < masters){
-				return resolve({'success': true});
+				return resolve({'success': true, 'message': random.randomly_select(config.valid_arrangement_time)});
 			} else {
 				return resolve({
 					'success': false, 
-					'message': 'Unfortunately there is not a free place. ' + get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
-					'cause': `not enough masters for ${desired_service_type}`
+					'message': random.randomly_select(config.busy_arrangement_time.start) + 
+							   get_suggestion(result, duration, masters, desired_time, desired_service_type, start_work, end_work, weekend),
+					'cause': config.busy_arrangement_time.cause + desired_service_type
 				});
 			}
 		}).catch(function (error){

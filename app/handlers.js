@@ -1,16 +1,23 @@
 'use strict';
 
+const config = require('config-yml');
 const db_api = require('./db_api.js');
 const contexts = require('./contexts.js');
 const date_converters = require('./date_converters.js');
 const arrangement_validators = require('./arrangement_validators.js');
 const repliers = require('./repliers.js');
 const negative_experience = require('./negative_experience.js');
+const random = require('./random');
 
 exports.contacts_request = (agent) => {
 	return new Promise((resolve, reject) => {
 		db_api.read_contacts().then(function(contacts){
-			return resolve(repliers.give_contacts(agent, contacts));
+			return resolve(repliers.reply(agent, 
+						random.randomly_select(config.contacts.start) + 
+						contacts.email +
+						random.randomly_select(config.contacts.middle) +
+						contacts.email + 
+						random.randomly_select(config.contacts.end)));
 		}).catch(function(error){
 	    	console.log('Error during requesting contacts');
 	    	console.log(error);
@@ -37,9 +44,9 @@ exports.write_order = (agent) => {
 	    db_api.write_arrangement(service_type, date_converters.fix_date(new Date(arrangement_time), day_informal_description), lastname, agent, additional_info).then(function(result){
 	    	contexts.clear_order_contexts(agent);
 	    	if (result.success){
-	    		repliers.bye(agent);
+	    		repliers.reply(agent, random.randomly_select(config.arrangement_established));
 	    	} else {
-	    		repliers.error_bye(agent);
+	    		repliers.reply(agent, random.randomly_select(config.arrangement_failed));
 	    	}
 	    	return resolve(result);
 	    }).catch(function(error){
@@ -65,10 +72,10 @@ exports.validate_arrangement_time = (agent) => {
 
 		arrangement_validators.if_time_free(date_converters.fix_date(new Date(arrangement_time), day_informal_description), service_type, agent).then(function(result){
 			if (result.success){
-				repliers.time_is_free(agent, result.message);
+				repliers.reply(agent, result.message);
 				contexts.start_getting_last_name(agent);
 			} else {
-				repliers.time_is_busy(agent, result.message);
+				repliers.reply(agent, result.message);
 				negative_experience.increase(agent, result.cause);
 			}
 			return resolve(result);

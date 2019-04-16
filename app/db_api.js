@@ -1,15 +1,18 @@
 'use strict';
 
+const config = require('config-yml');
 const tools = require('./tools.js');
 const admin = require('firebase-admin');
+const contexts = require('./contexts');
+const arrangement_validators = require('./arrangement_validators');
 
 admin.initializeApp({
-    apiKey: process.env.TODD_API_KEY,
-    authDomain: process.env.TODD_AUTH_DOMAIN,
-    databaseURL: process.env.TODD_DATABASE_URL,
-    projectId: process.env.TODD_PROJECT_ID,
-    storageBucket: process.env.TODD_STORAGE_BUCKET,
-    messagingSenderId: process.env.TODD_MESSAGING_SENDER_ID,
+    apiKey: config.firebase_admin.todd_api_key,
+    authDomain: config.firebase_admin.todd_auth_domain,
+    databaseURL: config.firebase_admin.todd_database_url,
+    projectId: config.firebase_admin.todd_project_id,
+    storageBucket: config.firebase_admin.todd_storage_bucket,
+    messagingSenderId: config.firebase_admin.todd_messaging_sender_id,
 });
 var db = admin.firestore();
 
@@ -20,9 +23,8 @@ exports.write_arrangement = (service_type, arrangement_time, lastname, agent, ad
 		'time': arrangement_time
 	};
     
-    if (agent.getContext('negative_arrangement_experienced')){
-		new_order.negative_experience = agent.getContext('negative_arrangement_experienced').parameters.negative_experience;
-		//agent.setContext({'name':'negative_arrangement_experienced','lifespan': 0});
+    if (contexts.get_negative_arrangement_experienced_context(agent)){
+		new_order.negative_experience = contexts.get_negative_experience_degree(agent);
 	}
     
     if (additional_info){
@@ -30,20 +32,23 @@ exports.write_arrangement = (service_type, arrangement_time, lastname, agent, ad
 	}
 
 	return new Promise((resolve, reject) => {
-		db.collection("service_types").where('name', '==', service_type).get().then(function(query_snapshot) {
+		arrangement_validators.if_time_free(arrangement_time, service_type).then(function(result){
+			if (!result.success){
+				throw new Error('arrangement time is invalid');
+			} else {
+				return db.collection(config.collections.service_types).where('name', '==', service_type).get();
+			}
+		}).then(function(query_snapshot) {
         	query_snapshot.forEach(function(doc) {
             	new_order.service_type = doc._ref;
           	});
-          	return db.collection('arrangements').add(new_order);
+          	return db.collection(config.collections.arrangements).add(new_order);
         }).then(function(ref){
-			console.log('Added a new document with reference:');
-			console.log(ref);
-			//agent.add(randomly_select(bye));
-          	//clear_order_contexts(agent);
+			//console.log('Added a new document with reference:');
+			//console.log(ref);
 			resolve({'result': ref, 'success': true});
 		}).catch(function(error){
 			console.log('There is some error');
-			//agent.add('Something went wrong. Suffering...');
 			resolve({'result': error, 'success': false});
 		});
 	});
@@ -51,7 +56,7 @@ exports.write_arrangement = (service_type, arrangement_time, lastname, agent, ad
 
 exports.read_contacts = () => {
 	return new Promise((resolve, reject) => {
-		db.collection("base_info").doc('contacts').get().then(function(contacts){
+		db.collection(config.collections.base_info).doc('contacts').get().then(function(contacts){
 			let email = contacts.data().email;
 			let phone = contacts.data().phone;
 			return resolve({'email': email, 'phone': phone});
@@ -61,7 +66,7 @@ exports.read_contacts = () => {
 
 exports.read_schedule = () => {
 	return new Promise((resolve, reject) => {
-		db.collection("base_info").doc('schedule').get().then(function(schedule){
+		db.collection(config.collections.base_info).doc('schedule').get().then(function(schedule){
 			return resolve({
 				'start_work': schedule.data().start_work.toDate(),
 				'end_work': schedule.data().end_work.toDate(),
@@ -73,7 +78,7 @@ exports.read_schedule = () => {
 
 exports.read_service_type = (service_type) => {
 	return new Promise((resolve, reject) => {
-		db.collection("service_types").where('name', '==', service_type).get().then(function(query_snapshot){
+		db.collection(config.collections.service_types).where('name', '==', service_type).get().then(function(query_snapshot){
 			var result = {'masters': 1, 'duration': 1};
 			query_snapshot.forEach(function(doc) {
 	          	result.masters = doc.data().masters;
@@ -86,10 +91,10 @@ exports.read_service_type = (service_type) => {
 
 exports.read_arrangement_times = () => {
 	return new Promise((resolve, reject) => {
-		db.collection('arrangements').get().then(function(arrangements_query_snapshot){
+		db.collection(config.collections.arrangements).get().then(function(arrangements_query_snapshot){
 			var promises = [];
 			arrangements_query_snapshot.forEach(function(doc){
-				promises.push(db.collection('service_types').get(doc.data().service_type.path.split('/')[1]));
+				promises.push(db.collection(config.collections.service_types).get(doc.data().service_type.path.split('/')[1]));
 			});
 			promises.push(arrangements_query_snapshot);
 			return Promise.all(promises);
@@ -119,7 +124,7 @@ exports.write_negative_experience = (cause) => {
   };
 
   return new Promise((resolve, reject) => {
-  	db.collection('negative_experiences').add(new_entry).then(function(ref){
+  	db.collection(config.collections.negative_experiences).add(new_entry).then(function(ref){
       console.log('Added a new negative_experience with reference:');
       console.log(ref);
       resolve(ref);
@@ -129,3 +134,69 @@ exports.write_negative_experience = (cause) => {
     });
   });
 }
+
+//
+
+exports.fill_up_base_info = (contacts, schedule) => {
+	return new Promise((resolve, reject) => {
+		var batch = db.batch();
+		
+		batch.set(db.collection(config.collections.base_info).doc('schedule'), schedule);
+		batch.set(db.collection(config.collections.base_info).doc('contacts'), contacts);
+
+		batch.commit().then(function(result){
+    		resolve(result);
+		}).catch(function(error){
+      		console.log('There is some error while filling up base info');
+      		console.log(error);
+      		resolve(error);
+    	});
+	});
+}
+
+exports.fill_up_service_types = (service_types) => {
+	return new Promise((resolve, reject) => {
+		var batch = db.batch();
+		
+		service_types.forEach(function(service_type){
+			batch.set(db.collection(config.collections.service_types).doc(), service_type);
+		});
+
+		batch.commit().then(function(result){
+    		resolve(result);
+		}).catch(function(error){
+      		console.log('There is some error while filling up service types');
+      		console.log(error);
+      		resolve(error);
+    	});
+	});
+}
+
+exports.clear_base_info_collection = () => {
+	return clear_collection(config.collections.base_info);
+}
+
+exports.clear_service_types_collection = () => {
+	return clear_collection(config.collections.service_types);
+}
+
+exports.clear_arrangements_collection = () => {
+	return clear_collection(config.collections.arrangements);
+}
+
+exports.clear_negative_experiences_collection = () => {
+	return clear_collection(config.collections.negative_experiences);
+}
+
+function clear_collection(collection_name){
+	return new Promise((resolve, reject) => {
+		db.collection(collection_name).get().then((snapshot) => {
+	  		snapshot.forEach(function(document_snapshot){
+	  			//console.log(document_snapshot);
+	    		document_snapshot._ref.delete();
+	  		});
+	  		resolve(snapshot);
+		});
+	});
+}
+

@@ -1,3 +1,5 @@
+'use strict';
+
 exports.get_times = (query_snapshot) => {
 	return get_properties(query_snapshot, 'time');
 }
