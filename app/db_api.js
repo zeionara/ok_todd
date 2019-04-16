@@ -200,3 +200,10 @@ function clear_collection(collection_name){
 	});
 }
 
+exports.get_arrangement_by_ref = (ref) => {
+	return new Promise((resolve, reject) => {
+		db.collection(config.collections.arrangements).get(ref.path.split('/')[1]).then(function(doc){
+			resolve(doc);
+		});
+	});
+}
